@@ -1,4 +1,5 @@
 import csv
+import string
 
 def load_messages(filepath):
     """
@@ -31,8 +32,14 @@ def load_messages(filepath):
         next(reader) # skips header row
         for row in reader:
             label, message = row[0], row[1] # we still need this actually
+
+            message = message.lower()
+            translator = str.maketrans("", "", string.punctuation)
+            message = message.translate(translator)
+
             for word in message.split(): # do i need to do more to the message?
                                             # like remove punctuation? capitilzation? 
+                
                 word_counts = ham_counts if label == "ham" else spam_counts
                 if word not in word_counts:
                     word_counts[word] = 1
@@ -51,7 +58,21 @@ def probability(word, ham_counts, spam_counts):
 
     return p_ham, p_spam
 
+def export_word(ham_counts, spam_counts, outpath):
+    total_ham = sum(ham_counts.values())
+    total_spam = sum(spam_counts.values())
+
+    all_words = set(ham_counts.keys()) | set(spam_counts.keys())
+
+    with open(outpath, "w", newline='', encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(["word", "ham_prob", "spam_prob"])  # header
+
+        for word in all_words:
+            p_ham = ham_counts.get(word, 0) / total_ham if total_ham > 0 else 0
+            p_spam = spam_counts.get(word, 0) / total_spam if total_spam > 0 else 0
+            writer.writerow([word, p_ham, p_spam])
+
 
 ham_counts, spam_counts = load_messages("/Users/oliviadonkus/Desktop/DS5010/TEST/in class/Week-3/SMSSpamCollectionFull.csv")
-word = input("Enter word: ")
-print(probability(word, ham_counts, spam_counts))
+export_word(ham_counts, spam_counts, "word_probs.csv")
